@@ -1,0 +1,13 @@
+{% if array %}
+	<p>Array:</p>
+	
+	<table>
+	{% for row in array %}
+		<tr>
+		{% for value in row %}
+			<td>{{value}}</td>
+		{% endfor %}
+		</tr>
+	{% endfor %}
+	</table>
+{% endif %}
