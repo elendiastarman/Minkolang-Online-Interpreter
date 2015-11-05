@@ -10,12 +10,6 @@ if "idlelib" in sys.modules:
     debug = 1
     numSteps = 100
 
-##if len(sys.argv) < 2: raise ValueError("Need at least one file name!")
-##if len(sys.argv) == 2: sys.argv.append("")
-
-##print(sys.argv)
-##print(os.curdir, os.getcwd())
-
 if len(sys.argv) > 1 and sys.argv[1][-4:] == ".mkl":
     file = open(sys.argv[1], encoding="utf-8").read()
     if '\ufeff' in file: file = file[1:]
@@ -701,26 +695,9 @@ class Program:
         if direction == "jump":
             self.velocity = [bool(v)*int(copysign(1,v)) for v in self.velocity] #resets after a jump
 
-##    def push(self, L):
-##        if type(L) == list:
-##            self.stack.extend(L)
-##        elif type(L) == str:
-##            self.stack.extend(map(ord,L[::-1]))
-##        elif type(L) == int:
-##            self.stack.append(L)
-##
     def getCode(self): return self.code
-##    def getArray(self): return self.array
-##    def getLoops(self): return self.loops
-##    def getStack(self): return self.stack
     def getModes(self): return [self.strMode,self.numMode]
-##    def getIsDone(self): return self.isDone
-##    def getOutput(self): return self.output
-##    def getCurrChar(self): return self.currChar
-##    def getPosition(self): return self.position
-##    def getVelocity(self): return self.velocity
     def getOldToggle(self): return self.oldToggle
-##    def getOldPosition(self): return self.oldposition
 
     def getVars(self):
         return vars(self)
