@@ -16,6 +16,7 @@ import os
 import sys
 import urllib
 import traceback
+import subprocess
 import multiprocessing
 from multiprocessing.managers import BaseManager
 
@@ -222,11 +223,16 @@ def main_view(request, **kwargs):
     return render(request, 'minkolang/main.html', context_instance=context)
 
 @csrf_exempt
-def github_view(*args, **kwargs):
+def github_view(request, *args, **kwargs):
 
-    context = RequestContext(request)
+    data = json.loads(request.body.decode())
 
-    with open('github_json.txt','w') as f: f.write(context)
+    #with open('github_json.txt','w') as f: f.write(str(data['pusher']))
+
+    if data['pusher']['name'] == 'elendiastarman' and sys.platform == 'linux':
+        subprocess.call("~/webapps/maingit/repos/minkolang.git/pull-from-github")
+
+    return HttpResponse("OK")
 
 
 
