@@ -230,10 +230,16 @@ def github_view(request, *args, **kwargs):
     #with open('github_json.txt','w') as f: f.write(str(data['pusher']))
 
     if data['pusher']['name'] == 'elendiastarman' and sys.platform == 'linux':
+##        pass
         try:
-            attempt = subprocess.check_output("./webapps/maingit/repos/minkolang.git/pull-from-github")
+##            attempt = -1
+##            attempt = subprocess.call("/home/elendia/bin/pull-from-github")
+##            attempt = subprocess.call("pwd", shell=True)
+            os.chdir("/home/elendia/webapps/maingit/repos/minkolang.git/")
+            attempt = subprocess.call("./pull-from-github")
             with open('github_pull_attempt.txt','w') as f: f.write("Exit code: %s"%attempt)
         except Exception as e:
+##            pass
             with open('error.txt','w') as f: f.write("Error: %s"%e) 
 
     return HttpResponse("OK")
