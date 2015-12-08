@@ -7,13 +7,15 @@ from copy import deepcopy
 
 debug = 0
 if "idlelib" in sys.modules:
-    sys.argv = ["minkolang_0.1.py", "PPCG_disapprovalface.mkl", "7"]
+    sys.argv = ["minkolang_0.11.py", "0$I2&N.\"j\"o-$-dr=,*!", "vv^^v^^^"]
     debug = 1
     numSteps = 100
 
 if len(sys.argv) > 1 and sys.argv[1][-4:] == ".mkl":
     file = open(sys.argv[1], encoding="utf-8").read()
     if '\ufeff' in file: file = file[1:]
+elif len(sys.argv) > 1 and "idlelib" in sys.modules:
+    file = sys.argv[1]
 else:
     file = None
 
@@ -177,6 +179,21 @@ class Program:
                                              self.velocity[1],
                                              self.velocity[2]]
 
+                    elif self.currChar in "!?@&":
+                        movedir = "jump"
+                        if self.currChar == "!":
+                            arg2 = 1
+                        else:
+                            tos = stack.pop() if stack else 0
+                            if self.currChar == "?" and tos:
+                                arg2 = 1
+                            elif self.currChar == "@":
+                                arg2 = tos
+                            elif self.currChar == "&" and (stack.pop() if stack else 0):
+                                arg2 = tos
+                            else:
+                                movedir = ""
+
                     elif self.currChar == "K":
                         n = 3 + self.toggleFlag
                         direc = random.randint(0,n)
@@ -197,6 +214,16 @@ class Program:
                         stack.append(int(self.currChar))
                     elif self.currChar == "l":
                         stack.append(10)
+                    elif self.currChar == "j":
+                        stack.append(1j)
+
+                    elif self.currChar == "L":
+                        s = stack.pop() if stack and self.toggleFlag else 1
+                        b = stack.pop() if stack else 0
+                        a = stack.pop() if stack else 0
+                        while a <= b:
+                            stack.append(a)
+                            a += s
 
                     elif self.currChar in "hH": #random number
                         if self.currChar == "h":
@@ -230,7 +257,12 @@ class Program:
                             if self.currChar == "+":
                                 result = a+b
                             elif self.currChar == "-":
-                                result = a-b if not self.toggleFlag else b-a
+                                if not self.toggleFlag:
+                                    result = a-b
+                                else:
+                                    stack.append(a)
+                                    result = math.copysign(1,b) if b else 0
+                                    if result.is_integer(): result=int(result)
                             elif self.currChar == "*":
                                 result = a*b
                             elif self.currChar == ":":
@@ -254,6 +286,12 @@ class Program:
                         else:
                             stack.extend(result)
 
+                    elif self.currChar == "Y":
+                        x = stack.pop() if stack else 0
+                        b = stack.pop() if stack else 0
+                        a = stack.pop() if stack else 0
+                        stack.append(int(a<=x<=b) if not self.toggleFlag else int(a<x<b))
+
                     elif self.currChar in "~,": #negation and not
                         b = stack.pop() if stack else 0
 
@@ -262,20 +300,8 @@ class Program:
                         elif self.currChar == ",":
                             stack.append(int(not b if not self.toggleFlag else bool(b)))
 
-                    elif self.currChar in "!?@&":
-                        movedir = "jump"
-                        if self.currChar == "!":
-                            arg2 = 1
-                        else:
-                            tos = stack.pop() if stack else 0
-                            if self.currChar == "?" and tos:
-                                arg2 = 1
-                            elif self.currChar == "@":
-                                arg2 = tos
-                            elif self.currChar == "&" and (stack.pop() if stack else 0):
-                                arg2 = tos
-                            else:
-                                movedir = ""
+                    elif self.currChar == "y":
+                        stack.append(min(stack) if not self.toggleFlag else max(stack))
 
                     elif self.currChar in "no": #input
                         if self.currChar == "n":
@@ -553,7 +579,7 @@ class Program:
                                     for line in self.array:
                                         line.extend([0]*(x-len(line)+1))
                                     while len(self.array) <= y:
-                                        self.array.append([0]*(x+1))
+                                        self.array.append([0]*(max([x+1,len(self.array[0])])))
                                 if debug: print(*self.array)
                                         
                                 self.array[y][x] = k
@@ -564,6 +590,235 @@ class Program:
                     elif self.currChar == "U":
                         print(*self.code, file=self.outfile)
                         print(*self.loops, file=self.outfile)
+
+                    elif self.currChar == "M": #MATH
+                        tos = stack.pop() if stack else 0
+
+                        if tos == 0:
+                            n = stack.pop() if stack else 0
+                            if not self.toggleFlag: #factorial
+                                stack.append(math.factorial(n))
+                            else: #gamma
+                                stack.append(math.gamma(n))
+                                
+                        elif tos == 1:
+                            n = stack.pop() if stack else 0
+                            if not self.toggleFlag: #sqrt
+                                stack.append(math.sqrt(n))
+                            else: #nth root
+                                r = (stack.pop() if stack else 0)**(1/n)
+                                if r.is_integer(): r = int(r)
+                                stack.append(r)
+                                
+                        elif tos == 2:
+                            n = stack.pop() if stack else 0
+                            P = getPrimes_parallelized()
+
+                            if n <= 1:
+                                stack.append(0)
+                            else:
+                                for p in P:
+                                    if p**2 > n: #prime
+                                        stack.append(not self.toggleFlag)
+                                        break
+                                    if n%p == 0: #composite
+                                        stack.append(self.toggleFlag)
+                                        break
+
+                        elif tos == 3:
+                            n = stack.pop() if stack else 0
+                            P = getPrimes_parallelized()
+                            if not self.toggleFlag: #nth prime
+                                for i,p in enumerate(P):
+                                    if i == n:
+                                        stack.append(p)
+                                        break
+                            else: #nth composite
+                                c = -1
+                                prevPrime = 0
+                                for p in P:
+                                    c += (p-prevPrime-1)
+                                    prevPrime = p
+                                    if c >= n+1:
+                                        stack.append(p-(c-n))
+                                        break
+                                    
+                        elif tos == 4:
+                            b = stack.pop() if stack else 0
+                            a = stack.pop() if stack else 0
+                            g = gcd(a,b)
+                            if not self.toggleFlag: #gcd
+                                stack.append(g)
+                            else: #lcm
+                                L = a*b/g
+                                if L.is_integer(): L = int(L)
+                                stack.append(L)
+                                
+                        elif tos == 5:
+                            mean = sum(stack)/len(stack) if stack else 0
+                            if not self.toggleFlag: #mean
+                                stack.clear()
+                                stack.append(mean)
+                            else: #standard deviation
+                                total = 0
+                                for s in stack:
+                                    total += (s-mean)**2
+                                stack.append(math.sqrt(total)/len(stack) if stack else 0)
+                                
+                        elif tos == 6:
+                            r = stack.pop() if stack else 0
+                            n = stack.pop() if stack else 0
+                            
+                            num = 1
+                            for i in range(n,r,-1):
+                                num *= i
+                            
+                            if not self.toggleFlag: #binomial (nCr)
+                                for j in range(1,(n-r)+1):
+                                    num //= j
+                            else: #nPr
+                                pass
+
+                            stack.append(num)
+                            
+                        elif tos == 7:
+                            n = complex(stack.pop() if stack else 0)
+                            if not self.toggleFlag: #pushes real, imag
+                                stack.append(n.real)
+                                stack.append(n.imag)
+                            else: #complex conjugate
+                                stack.append(n.conjugate())
+                                
+                        elif tos == 8:
+                            if not self.toggleFlag: #2D distance
+                                n = 2
+                            else: #N-d distance
+                                n = stack.pop() if stack else 0
+                                
+                            if not n:
+                                stack.append(0)
+                            else:
+                                x = [stack.pop() if stack else 0 for i in range(2*n)]
+                                stack.append(math.sqrt(sum([(x[i]-x[i+n])**2 for i in range(n)])))
+                                
+                        elif tos == 9:
+                            n = stack.pop() if stack else 0
+                            P = getPrimes_parallelized()
+                            total = 0
+                            
+                            if not self.toggleFlag: #pi(n)
+                                for p in P:
+                                    if p <= n: total += 1
+                                    else: break
+                            else: #phi(n)
+                                for i in range(1,n+1):
+                                    if gcd(i,n) == 1: total += 1
+                                
+                            stack.append(total)
+                            
+                        elif tos == 10:
+                            n = stack.pop() if stack else 0
+                            if not self.toggleFlag: #exp
+                                stack.append(math.exp(n))
+                            else: #?
+                                pass
+
+                    elif self.currChar == "T": #TRIG
+                        tos = stack.pop() if stack else 0
+
+                        if tos == 0:
+                            stack.append(math.pi if not self.toggleFlag else math.e)
+
+                        elif tos == 1:
+                            n = stack.pop() if stack else 0
+                            if not self.toggleFlag: #convert to radians
+                                stack.append(n*math.pi/180)
+                            else: #convert to degrees
+                                stack.append(n*180/math.pi)
+
+                        elif tos == 2:
+                            n = stack.pop() if stack else 0
+                            if not self.toggleFlag: #sine
+                                stack.append(math.sin(n))
+                            else: #arcsine
+                                stack.append(math.asin(n))
+
+                        elif tos == 3:
+                            n = stack.pop() if stack else 0
+                            if not self.toggleFlag: #cosine
+                                stack.append(math.cos(n))
+                            else: #arccosine
+                                stack.append(math.acos(n))
+
+                        elif tos == 4:
+                            n = stack.pop() if stack else 0
+                            if not self.toggleFlag: #tangent
+                                stack.append(math.tan(n))
+                            else: #arctangent
+                                stack.append(math.atan(n))
+
+                        elif tos == 5:
+                            y = stack.pop() if stack else 0
+                            x = stack.pop() if stack else 0
+                            
+                            if not self.toggleFlag: #atan2
+                                stack.append(math.atan2(y,x))
+                            else: #hypotenuse
+                                stack.append(math.hypot(x,y))
+
+                        elif tos == 6:
+                            ##using http://stackoverflow.com/a/7869457/1473772
+                            if not self.toggleFlag: #angle diff (angles)
+                                ang2 = stack.pop() if stack else 0
+                                ang1 = stack.pop() if stack else 0
+                                stack.append((ang2 - ang1 + 180) % 360 - 180)
+                            else: #angle diff (coords)
+                                y2 = stack.pop() if stack else 0
+                                x2 = stack.pop() if stack else 0
+                                y1 = stack.pop() if stack else 0
+                                x1 = stack.pop() if stack else 0
+                                ang1 = math.atan2(y1,x1)
+                                ang2 = math.atan2(y2,x2)
+                                stack.append((ang2 - ang1 + math.pi) % (2*math.pi) - math.pi)
+
+                        elif tos == 7:
+                            n = stack.pop() if stack else 0
+                            if not self.toggleFlag: #hyperbolic sine
+                                stack.append(math.sinh(n))
+                            else: #hyperbolic arcsine
+                                stack.append(math.asinh(n))
+
+                        elif tos == 8:
+                            n = stack.pop() if stack else 0
+                            if not self.toggleFlag: #hyperbolic cosine
+                                stack.append(math.cosh(n))
+                            else: #hyperbolic arccosine
+                                stack.append(math.acosh(n))
+
+                        elif tos == 9:
+                            n = stack.pop() if stack else 0
+                            if not self.toggleFlag: #hyperbolic tangent
+                                stack.append(math.tanh(n))
+                            else: #hyperbolic arctangent
+                                stack.append(math.atanh(n))
+
+                        elif tos == 10:
+                            if not self.toggleFlag: #?
+                                pass
+                            else: #?
+                                pass
+
+                    elif self.currChar == "Z": #STRING
+                        tos = stack.pop() if stack else 0
+                        pass
+
+##                    elif self.currChar == "P": #ITERTOOLS
+##                        tos = stack.pop() if stack else 0
+##                        pass
+
+                    elif self.currChar == "J": #MATRICES
+                        tos = stack.pop() if stack else 0
+                        pass
 
                     elif self.currChar == "k": #break
                         if self.loops:
@@ -751,9 +1006,30 @@ class Program:
 
     def stop(self): self.stopNow = True
 
+def getPrimes_parallelized(): #uses sieve of Sundaram
+        yield 2
+        yield 3
+        P = [[4,1]]
+        i = 2
+        while 1:
+            if P[0][0] <= i:
+                while P[0][0] <= i:
+                    P[0][0] += 2*P[0][1]+1
+                    P.sort()
+            elif P[0][0] > i:
+                yield 2*i+1
+                P.append([2*(i+i*i), i])
+                P.sort()
+            i += 1
+
+def gcd(a,b):
+    while 1:
+        a,b = b,a%b
+        if b == 0: return a
+
 if file:
     if debug:
-        prog = Program(file, sys.argv[2], debugFlag=1)
+        prog = Program(file, sys.argv[2] if len(sys.argv) > 2 else "", debugFlag=1)
         prog.run(numSteps)
 
     else:
