@@ -4,12 +4,13 @@ import json
 import math
 import cmath
 import random
+##if sys.platform == 'linux': import resource
 import itertools
 from copy import deepcopy
 
 debug = 0
 if "idlelib" in sys.modules:
-    sys.argv = ["minkolang_0.14.py", ".", "c2"]
+    sys.argv = ["minkolang_0.15.py", "\"'Z\"$O.", "c2"]
     debug = 1
     numSteps = 100
 
@@ -26,6 +27,11 @@ class Program:
     def __init__(self, code, inputStr="", debugFlag=0, outfile=sys.stdout):
         global debug
         debug = debugFlag
+
+##        if sys.platform == 'linux': #memory limit
+##            soft,hard = resource.getrlimit(resource.RLIMIT_AS)
+##            print("Soft,hard = ",(soft,hard))
+##            resource.setrlimit(resource.RLIMIT_AS, (1, hard))
         
         self.code = []
         for layer in filter(bool, code.split("$$$\n")):
@@ -63,6 +69,8 @@ class Program:
         self.ignoreFlag = ""
         self.ternaryFlag = ""
         self.escapeFlag = 0
+
+        self.groupedNum = None
         
         self.bounds = [[0,max([ max(map(len,layer)) for layer in self.code])],
                        [0,max(map(len,self.code))],
@@ -133,7 +141,9 @@ class Program:
                     if not self.ignoreFlag: stack.extend(list(map(ord,self.strLiteral[::-1])))
                     self.strLiteral = ""
                     self.escapeFlag = 0
-                    
+            
+            elif self.currChar == '"' and self.numMode: self.numLiteral += '"'
+            
             if self.currChar == "'" and not self.strMode:
                 self.fallable = not self.fallable
                 if not self.numMode:
@@ -160,11 +170,19 @@ class Program:
                     if not self.ignoreFlag: stack.append(result)
                     self.numLiteral = ""
 
+            elif self.currChar == "'" and self.strMode: self.strLiteral += "'"
+
             if self.currChar not in "'\"":
                 if not self.strMode and not self.numMode and not self.ignoreFlag:
 
                     if self.currChar != " " and not self.fallable and not self.fallFlag:
                         self.fallable = 1
+
+                    if self.currChar in "MTZWPJQ":
+                        self.groupedNum = stack[-1] if stack else 0
+                        print(self.groupedNum)
+                    else:
+                        self.groupedNum = None
                     
                     if self.currChar == ".": #stop execution
                         if not self.toggleFlag: #'$.' is a soft halt (breakpoint)
@@ -1604,20 +1622,20 @@ class Program:
     def stop(self): self.stopNow = True
 
 def getPrimes_parallelized(): #uses sieve of Sundaram
-        yield 2
-        yield 3
-        P = [[4,1]]
-        i = 2
-        while 1:
-            if P[0][0] <= i:
-                while P[0][0] <= i:
-                    P[0][0] += 2*P[0][1]+1
-                    P.sort()
-            elif P[0][0] > i:
-                yield 2*i+1
-                P.append([2*(i+i*i), i])
+    yield 2
+    yield 3
+    P = [[4,1]]
+    i = 2
+    while 1:
+        if P[0][0] <= i:
+            while P[0][0] <= i:
+                P[0][0] += 2*P[0][1]+1
                 P.sort()
-            i += 1
+        elif P[0][0] > i:
+            yield 2*i+1
+            P.append([2*(i+i*i), i])
+            P.sort()
+        i += 1
 
 def gcd(a,b):
     while 1:
